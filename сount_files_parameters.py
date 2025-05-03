@@ -89,7 +89,7 @@ def count_experiments(directory):
                     try:
                         with open(item, 'r', encoding='utf-8') as file:
                             lines = [line.strip() for line in file.readlines()]
-                            # Удаляем пустые строки
+                            # Удаляем потенциально пустые строки
                             lines = [line for line in lines if line]
 
                             if lines:
@@ -110,13 +110,17 @@ def count_experiments(directory):
                                         )
 
                                 total_experiments += file_experiments
+
                     except UnicodeDecodeError:
                         print(
                             f"Ошибка чтения файла {item}: "
                             f"неверная кодировка"
                         )
+                    except FileNotFoundError:
+                        print("Файл не найден")
                     except Exception as e:
                         print(f"Ошибка при чтении файла {item}: {str(e)}")
+
             elif item.is_dir():
                 sub_experiments = count_experiments(item)
                 # Проверяем, что результат не None

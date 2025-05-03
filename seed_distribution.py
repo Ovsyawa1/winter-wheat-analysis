@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 import numpy as np
 from matplotlib import pyplot as plt
+import seaborn as sns
 
 
 seed_masses = np.array([])
@@ -46,10 +47,15 @@ def mass_distribution(directory: str):
             # Вход в рекурсию для "поиска в глубину"
             elif item.is_dir():
                 mass_distribution(item)
-
+    except UnicodeDecodeError:
+        raise (
+            f"Ошибка чтения файла {item}: "
+            f"неверная кодировка"
+        )
     except FileNotFoundError as e:
         raise f"Не найден файл. Ошибка {e}"
-
+    except Exception as e:
+        raise f"Ошибка при чтении файла {item}: {str(e)}"
     finally:
         return seed_masses
 
@@ -73,15 +79,21 @@ if __name__ == "__main__":
     # mass_x = np.array(unique_masses)[order]
     # mass_y = np.array(count_masses)[order]
 
-    plt.style.use('fivethirtyeight')
-    bins = [15, 24, 28, 32, 36, 40, 44, 50]
+    '''График в виде KDE (kernel density estimation)'''
+    sns.set_style('whitegrid')
+    sns.kdeplot(seed_distribution) 
 
-    plt.hist(
-        seed_distribution,
-        bins=bins,
-        edgecolor='black',
-        color="orange",
-        )
+    plt.style.use('fivethirtyeight')
+    # bins = [15, 24, 28, 32, 36, 40, 44, 50]
+
+    '''График в виде гистограммы'''
+    # plt.hist(
+    #     seed_distribution,
+    #     bins=bins,
+    #     edgecolor='black',
+    #     color="orange",
+    #     )
+    
     plt.title('Распределение семян по массе')
     plt.xlabel('Масса, мгм')
     plt.ylabel('Число семян')
