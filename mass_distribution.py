@@ -93,9 +93,10 @@ if __name__ == "__main__":
     #     edgecolor='black',
     #     color="orange",
     #     )
-    
+
     plt.title('Распределение семян по массе')
     plt.xlabel('Масса, мгм')
-    plt.ylabel('Число семян')
+    # plt.ylabel('Число семян')
+    plt.ylabel('Вероятность')
 
     plt.show()

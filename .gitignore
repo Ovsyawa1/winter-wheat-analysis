@@ -173,5 +173,6 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+experiments/
 diploma/
 regular_tests.py
