@@ -67,6 +67,11 @@ roots_sum_p_values = np.array([])
 roots_mean_p_values = np.array([])
 germination_rates = np.array([])
 
+all_roots_values = []
+all_shoots_values = []
+all_roots_sum_values = []
+all_roots_mean_values = []
+
 
 def normality_of_the_distribution_control(directory):
     ''' Не используется '''
@@ -151,6 +156,11 @@ def analyse_control_experiment(filename: Path):
     global roots_sum_p_values
     global roots_mean_p_values
     global germination_rates
+    global all_roots_values
+    global all_shoots_values
+    global all_roots_sum_values
+    global all_roots_mean_values
+
     try:
         df = read_and_extract_txt_data(filename)
         logger.info(f"Рассматриваем файл {filename}")
@@ -159,18 +169,22 @@ def analyse_control_experiment(filename: Path):
         roots_values = df.iloc[:, 1:len(df.columns)-2].to_numpy().flatten()
         # ~ - инвертирование
         roots_values = roots_values[~np.isnan(roots_values)]
+        all_roots_values.append(roots_values)
 
         ''' Рассмотрение побегов '''
         shoots_values = df.loc[:, 'Побег'].to_numpy().flatten()
         shoots_values = shoots_values[~np.isnan(shoots_values)]
+        all_shoots_values.append(shoots_values)
 
         ''' Рассмотрение корневой системы '''
         roots_sum_values = df.loc[:, 'Общая_длина_корневой_системы'].to_numpy().flatten()
         roots_sum_values = roots_sum_values[~np.isnan(roots_sum_values)]
+        all_roots_sum_values.append(roots_sum_values)
 
         ''' Рассмотрение средней длины корней '''
         roots_mean_values = df.loc[:, 'Средняя_длина_корня'].to_numpy().flatten()
         roots_mean_values = roots_mean_values[~np.isnan(roots_mean_values)]
+        all_roots_mean_values.append(roots_mean_values)
 
         ''' Тест Шапиро (Проверка на нормальное распределение) '''
         # Корни
@@ -218,29 +232,76 @@ def analyse_all_control_experiments(directory):
             elif item.is_dir():
                 analyse_all_control_experiments(item)
     except Exception as e:
+        logger.error(f"Ошибка в папке {directory}! Ошибка - {e}\n")
         print(f"Ошибка при чтении файла: {item}. Ошибка - {e}")
     finally:
         pass
 
 
-if __name__ == "__main__":
-    # all_values, length_of_shoots, germination_rates, mean_roots = (
-    #     normality_of_the_distribution_control(
-    #         # Сюда прописывать путь до папки
-    #         Path("experiments", "control", "15-24")
-    #     )
+def normality_tests():
+    '''
+    Тест ANOVA (Показывает различия в среднем значении)
+    Если отличется хотя бы одна группа, то всё плохо
+    '''
+    f_statistic, f_p_value = f_oneway(*all_roots_values)
+    print(
+        f"ANOVA p_value для индивидуальных корней = {f_p_value}"
+    )
+    f_statistic, f_p_value = f_oneway(*all_shoots_values)
+    print(
+        f"ANOVA p_value для побегов = {f_p_value}"
+    )    
+    f_statistic, f_p_value = f_oneway(*all_roots_sum_values)
+    print(
+        f"ANOVA p_value для корневой системы = {f_p_value}"
+    )
+    f_statistic, f_p_value = f_oneway(*all_roots_mean_values)
+    print(
+        f"ANOVA p_value для средних значений = {f_p_value}"
+    )
+
+    ''' Тест Левена (Показывает различия в дисперсии) '''
+    l_statistic, l_p_value = levene(*all_roots_values)
+    print(
+        f"Levene p_value для индивидуальных корней = {l_p_value}"
+    )
+    l_statistic, l_p_value = levene(*all_shoots_values)
+    print(
+        f"Levene p_value для побегов = {l_p_value}"
+    )
+    l_statistic, l_p_value = levene(*all_roots_sum_values)
+    print(
+        f"Levene p_value для корневой системы = {l_p_value}"
+    )
+    l_statistic, l_p_value = levene(*all_roots_mean_values)
+    print(
+        f"Levene p_value для средних значений = {l_p_value}"
+    )
+    '''
+    Тест Тьюки
+    Контролирует семейную ошибку (FWER), избегая ложных значимых
+    результатов при множественных сравнениях
+    '''
+    # t_statistic, t_p_value = tukey_hsd(*all_roots_values)
+    # print(
+    #     f"Tukey p_value для индивидуальных корней = {t_p_value}"
+    # )
+    # t_statistic, t_p_value = tukey_hsd(*all_shoots_values)
+    # print(
+    #     f"Tukey p_value для побегов = {t_p_value}"
+    # )
+    # t_statistic, t_p_value = tukey_hsd(*all_roots_sum_values)
+    # print(
+    #     f"Tukey p_value для корневой системы = {t_p_value}"
+    # )
+    # t_statistic, t_p_value = tukey_hsd(*all_roots_mean_values)
+    # print(
+    #     f"Tukey p_value для средних значений = {t_p_value}"
     # )
 
-    # draw_qq_histograms(all_values, length_of_shoots)
-    # draw_germination_rates(germination_rates)
 
-    logger.info("Тесты Шапиро для контрольной группы")
-    analyse_all_control_experiments(
-        Path(
-            'diploma',
-            '2019.09.05_Winter Wheat 2018 Ozon 4gm3 on MASS',
-        )
-    )
+def logging_func():
+    logger.info("Тесты Шапиро для контрольной группы\n")
 
     # Форматирование записи итоговых массивов
     formatter = {
@@ -267,6 +328,45 @@ if __name__ == "__main__":
         "Итоговый массив из значений всхожести: "
         f"{np.array2string(germination_rates, precision=5)}"
     )
+    summary = [
+        np.mean(roots_p_values),
+        np.mean(shoots_p_values),
+        np.mean(roots_sum_p_values),
+        np.mean(roots_mean_p_values),
+        ]
+    logger.info(
+        "Выведем средние значения p для каждого массива, "
+        "а на основе этого выберем самые достоверные величины:\n"
+        f"{summary}\n"
+        "Порядок элементов: индивидуальные корни, побеги, корневая система, "
+        "средние значения корней"
+    )
+
+
+if __name__ == "__main__":
+    # all_values, length_of_shoots, germination_rates, mean_roots = (
+    #     normality_of_the_distribution_control(
+    #         # Сюда прописывать путь до папки
+    #         Path("experiments", "control", "15-24")
+    #     )
+    # )
+
+    # draw_qq_histograms(all_values, length_of_shoots)
+    # draw_germination_rates(germination_rates)
+
+    analyse_all_control_experiments(
+        Path(
+            'experiments',
+            'control',
+            '15-24'
+        )
+    )
+    
+    logging_func()
+    normality_tests()
+    all_roots_sum_values = np.concatenate(all_roots_sum_values)
+    all_shoots_values = np.concatenate(all_shoots_values)
+    draw_qq_histograms(all_roots_sum_values, all_shoots_values)
 
     # df = read_and_extract_txt_data("test.txt")
     # germination_rates = count_germination_rate("test.txt")

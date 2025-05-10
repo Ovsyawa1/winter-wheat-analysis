@@ -3,21 +3,21 @@ import numpy as np
 from scipy.stats import probplot
 
 
-def draw_qq_histograms(all_values, length_of_shoots):
+def draw_qq_histograms(roots_values, shoots_values):
     plt.subplot(2, 2, 1)
-    probplot(all_values, dist="norm", plot=plt)
-    plt.title('Q-Q Корни')
+    probplot(roots_values, dist="norm", plot=plt)
+    plt.title('Q-Q Корневая система')
 
     plt.subplot(2, 2, 2)
-    plt.hist(all_values, bins=15, color="orange")
-    plt.title("Гистограмма Корни")
+    plt.hist(roots_values, bins=15, color="orange")
+    plt.title("Гистограмма Корневая система")
 
     plt.subplot(2, 2, 3)
-    probplot(length_of_shoots, dist="norm", plot=plt)
+    probplot(shoots_values, dist="norm", plot=plt)
     plt.title('Q-Q Побеги')
 
     plt.subplot(2, 2, 4)
-    plt.hist(length_of_shoots, bins=15, color="green")
+    plt.hist(shoots_values, bins=15, color="green")
     plt.title('Гистограмма Побеги')
     plt.show()
 
@@ -28,6 +28,21 @@ def draw_germination_rates(germination_rates):
     plt.bar(x_axis, y_axis, color="skyblue")
     plt.ylim(np.min(y_axis) - 0.2, 1)
     plt.title('График всхожесть')
+    plt.show()
+
+
+def draw_mass_analys(shoots_values, roots_values, all_roots_values):
+    plt.subplot(2, 2, 1)
+    plt.hist(shoots_values, bins=15, color="green")
+    plt.title('Распределение длин побегов')
+
+    plt.subplot(2, 2, 2)
+    plt.hist(roots_values, bins=15, color="orange")
+    plt.title("Распределение средних длин корней")
+
+    plt.subplot(2, 2, 3)
+    plt.hist(all_roots_values, bins=15, color="skyblue")
+    plt.title('Распределение длин корневых систем')
     plt.show()
 
 
