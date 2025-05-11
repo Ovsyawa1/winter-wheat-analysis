@@ -31,18 +31,30 @@ def draw_germination_rates(germination_rates):
     plt.show()
 
 
-def draw_mass_analys(shoots_values, roots_values, all_roots_values):
+def draw_mass_analys(
+    shoots_values,
+    roots_values,
+    all_roots_values,
+    germination_rates
+):
     plt.subplot(2, 2, 1)
-    plt.hist(shoots_values, bins=15, color="green")
+    plt.hist(shoots_values, bins=15, color="green", edgecolor="black")
     plt.title('Распределение длин побегов')
 
     plt.subplot(2, 2, 2)
-    plt.hist(roots_values, bins=15, color="orange")
+    plt.hist(roots_values, bins=15, color="orange", edgecolor="black")
     plt.title("Распределение средних длин корней")
 
     plt.subplot(2, 2, 3)
-    plt.hist(all_roots_values, bins=15, color="skyblue")
+    plt.hist(all_roots_values, bins=15, color="skyblue", edgecolor="black")
     plt.title('Распределение длин корневых систем')
+    
+    plt.subplot(2, 2, 4)
+    x_axis = [x for x in range(1, len(germination_rates) + 1)]
+    y_axis = germination_rates
+    plt.bar(x_axis, y_axis, color="#ff5cff", edgecolor="black")
+    plt.ylim(np.min(y_axis) - 0.2, 1)
+    plt.title('График всхожесть')
     plt.show()
 
 

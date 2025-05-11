@@ -2,7 +2,8 @@ import logging
 from pathlib import Path
 import numpy as np
 
-from control_analysis import text_extensions
+from get_germination_rate import count_germination_rate
+from normality_analysis import text_extensions
 from draw_graphs import draw_mass_analys
 from read_txt_data import read_and_extract_txt_data
 
@@ -13,16 +14,14 @@ mean_all_roots_values = np.array([])
 shoots_values = np.array([])
 roots_values = np.array([])
 all_roots_values = np.array([])
+germination_rates = np.array([])
 
 ''' Объявление логгера для Контроля '''
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler('weight_characteristics.log', mode='w')
-    ],
-)
-logger = logging.getLogger('weight_characteristics')
+logger = logging.getLogger('seed_characteristics')
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler('seed_characteristics.log', mode='a')
+handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+logger.addHandler(handler)
 
 
 def data_organization(filename):
@@ -32,8 +31,12 @@ def data_organization(filename):
     global shoots_values
     global roots_values
     global all_roots_values
+    global germination_rates
 
     df = read_and_extract_txt_data(filename)
+    # Проверка на аномалии
+    print(filename)
+    print(df[df["Средняя_длина_корня"] == df["Средняя_длина_корня"].max()])
     logger.info(f"Файл - {filename}")
     logger.info(
         "Средняя длина побега: "
@@ -63,7 +66,7 @@ def data_organization(filename):
         "Средняя общая длина корневой системы: "
         f"{df['Общая_длина_корневой_системы'].mean():.5f}\n"
         "Отклонение: "
-        f"{df['Общая_длина_корневой_системы'].std():.5f}\n"
+        f"{df['Общая_длина_корневой_системы'].std():.5f}"
     )
     mean_all_roots_values = np.append(
         mean_all_roots_values, 
@@ -73,6 +76,13 @@ def data_organization(filename):
         all_roots_values,
         df['Общая_длина_корневой_системы'].to_numpy().flatten()
     )
+    
+    germination_rate = count_germination_rate(filename)
+    logger.info(
+        "Всхожесть: "
+        f"{germination_rate:.5f}\n"
+    )
+    germination_rates = np.append(germination_rates, germination_rate)
 
 
 def weight_characteristics(directory):
@@ -88,19 +98,6 @@ def weight_characteristics(directory):
     except Exception as e:
         logger.error(f"Ошибка в папке {directory}! Ошибка - {e}\n")
         print(f"Ошибка при чтении файла: {item}. Ошибка - {e}")
-    finally:
-        logger.info(
-            "Итого\n"
-            "Для рассматриваемого массового диапозона семян\n"
-            f"Средняя длина побега: {shoots_values.mean():.5f}\n"
-            f"Средняя длина корня: {roots_values.mean():.5f}\n"
-            f"Средняя длина корневой системы: {all_roots_values.mean():.5f}\n"
-        )
-        draw_mass_analys(
-            shoots_values,
-            roots_values,
-            all_roots_values
-        )
 
 
 if __name__ == "__main__":
@@ -108,7 +105,20 @@ if __name__ == "__main__":
     weight_characteristics(
         Path(
             'experiments',
-            'control',
-            '45+'
+            '8gm3_45',
         )
+    )
+    logger.info(
+        "Итого\n"
+        "Для рассматриваемого массового диапозона семян\n"
+        f"Средняя длина побега: {shoots_values.mean():.5f}\n"
+        f"Средняя длина корня: {roots_values.mean():.5f}\n"
+        f"Средняя длина корневой системы: {all_roots_values.mean():.5f}\n"
+        f"Средний показатель всхожести: {germination_rates.mean():.5f}\n\n"
+    )
+    draw_mass_analys(
+        shoots_values,
+        roots_values,
+        all_roots_values,
+        germination_rates
     )
