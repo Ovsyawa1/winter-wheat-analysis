@@ -2,14 +2,16 @@ from pathlib import Path
 import logging
 import numpy as np
 from scipy.stats import (
-    shapiro, tukey_hsd, f_oneway, levene
+    shapiro, tukey_hsd, f_oneway, levene, sem, t
 )
+from statsmodels.stats.diagnostic import normal_ad
 
 from draw_graphs import (
     draw_control_roots, draw_germination_rates, draw_qq_histograms
 )
 from get_germination_rate import count_germination_rate
 from read_txt_data import read_and_extract_txt_data
+
 
 
 ''' Объявление логгера для Контроля '''
@@ -27,11 +29,20 @@ logger = logging.getLogger('control_tests')
 # all_values = np.array([])
 # length_of_shoots = np.array([])
 # mean_roots = []
+
+
 text_extensions = {'.txt'}
-roots_p_values = np.array([])
-shoots_p_values = np.array([])
-roots_sum_p_values = np.array([])
-roots_mean_p_values = np.array([])
+
+shapiro_roots_p_values = np.array([])
+shapiro_shoots_p_values = np.array([])
+shapiro_roots_sum_p_values = np.array([])
+shapiro_roots_mean_p_values = np.array([])
+
+anderson_roots_p_values = np.array([])
+anderson_shoots_p_values = np.array([])
+anderson_roots_sum_p_values = np.array([])
+anderson_roots_mean_p_values = np.array([])
+
 germination_rates = np.array([])
 
 all_roots_values = []
@@ -118,11 +129,18 @@ def normality_of_the_distribution_control(directory):
 
 def analyse_control_experiment(filename: Path):
     ''' Анализ одного файла контроля '''
-    global roots_p_values
-    global shoots_p_values
-    global roots_sum_p_values
-    global roots_mean_p_values
+    global shapiro_roots_p_values
+    global shapiro_shoots_p_values
+    global shapiro_roots_sum_p_values
+    global shapiro_roots_mean_p_values
+
     global germination_rates
+
+    global anderson_roots_p_values
+    global anderson_shoots_p_values
+    global anderson_roots_sum_p_values
+    global anderson_roots_mean_p_values
+
     global all_roots_values
     global all_shoots_values
     global all_roots_sum_values
@@ -156,32 +174,64 @@ def analyse_control_experiment(filename: Path):
         ''' Тест Шапиро (Проверка на нормальное распределение) '''
         # Корни
         s_statistic, s_p_value = shapiro(roots_values)
-        logger.info(f"Индивидуальные корни: p={s_p_value:.7f}")
-        roots_p_values = np.append(roots_p_values, s_p_value)
+        logger.info(f"Индивидуальные корни Шапиро: p={s_p_value:.7f}")
+        shapiro_roots_p_values = np.append(shapiro_roots_p_values, s_p_value)
 
         # Побеги
         s_statistic, s_p_value = shapiro(shoots_values)
-        logger.info(f"Побеги: p={s_p_value:.7f}")
-        shoots_p_values = np.append(shoots_p_values, s_p_value)
+        logger.info(f"Побеги Шапиро: p={s_p_value:.7f}")
+        shapiro_shoots_p_values = np.append(shapiro_shoots_p_values, s_p_value)
 
         # Корневая система
         s_statistic, s_p_value = shapiro(roots_sum_values)
-        logger.info(f"Корневая система: p={s_p_value:.7f}")
-        roots_sum_p_values = np.append(roots_sum_p_values, s_p_value)
+        logger.info(f"Корневая система Шапиро: p={s_p_value:.7f}")
+        shapiro_roots_sum_p_values = np.append(shapiro_roots_sum_p_values, s_p_value)
 
         # Средняя длина корня
         s_statistic, s_p_value = shapiro(roots_mean_values)
-        logger.info(f"Средняя длина корня: p={s_p_value:.7f}")
-        roots_mean_p_values = np.append(roots_mean_p_values, s_p_value)
+        logger.info(f"Средняя длина корня Шапиро: p={s_p_value:.7f}")
+        shapiro_roots_mean_p_values = np.append(shapiro_roots_mean_p_values, s_p_value)
+        
+        ''' Тест Андерсона (Проверка на нормальное распределение) '''
+        # Корни
+        list_of_arrays_fixed = [arr if arr.ndim > 0 else np.array([arr]) for arr in roots_values]
+        statistic, p_value = normal_ad(np.concatenate(list_of_arrays_fixed))
+        logger.info(f"Индивидуальные корни Андерсон: p={p_value}")
+        anderson_roots_p_values = np.append(anderson_roots_p_values, p_value)
+
+        # Побеги
+        list_of_arrays_fixed = [arr if arr.ndim > 0 else np.array([arr]) for arr in shoots_values]
+        statistic, p_value = normal_ad(np.concatenate(list_of_arrays_fixed))
+        logger.info(f"Побеги Андерсон: p={p_value}")
+        anderson_shoots_p_values = np.append(
+            anderson_shoots_p_values, p_value
+        )
+
+        # Корневая система
+        list_of_arrays_fixed = [arr if arr.ndim > 0 else np.array([arr]) for arr in all_roots_sum_values]
+        statistic, p_value = normal_ad(np.concatenate(list_of_arrays_fixed))
+        logger.info(f"Корневая система Андерсон: p={p_value}")
+        anderson_roots_sum_p_values = np.append(
+            anderson_roots_sum_p_values, p_value
+        )
+
+        # Средняя длина корня
+        list_of_arrays_fixed = [arr if arr.ndim > 0 else np.array([arr]) for arr in all_roots_mean_values]
+        statistic, p_value = normal_ad(np.concatenate(list_of_arrays_fixed))
+        logger.info(f"Средняя длина корня Андерсон: p={p_value}")
+        anderson_roots_mean_p_values = np.append(
+            anderson_roots_mean_p_values, p_value
+        )
 
         # Всхожесть
         germination_rate = count_germination_rate(filename)
         logger.info(f"Всхожесть = {germination_rate:.7f}\n")
         germination_rates = np.append(germination_rates, germination_rate)
-
+        
     except Exception as e:
         print(f"Ошибка - {e}; В файле {filename}")
         logger.error(f"Ошибка в файле {filename}! Ошибка - {e}\n")
+        raise e
 
     finally:
         # return roots_values, shoots_values, roots_sum_values, mass_string
@@ -277,32 +327,45 @@ def logging_func():
 
     logger.info(
         "Итоговый массив из значений P для индивидуальных корней: "
-        f"{np.array2string(roots_p_values, formatter=formatter)}"
+        f"{np.array2string(shapiro_roots_p_values, formatter=formatter)}"
     )
     logger.info(
         "Итоговый массив из значений P для побегов: "
-        f"{np.array2string(shoots_p_values, formatter=formatter)}"
+        f"{np.array2string(shapiro_shoots_p_values, formatter=formatter)}"
     )
     logger.info(
         "Итоговый массив из значений P для корневой системы: "
-        f"{np.array2string(roots_sum_p_values, formatter=formatter)}"
+        f"{np.array2string(shapiro_roots_sum_p_values, formatter=formatter)}"
     )
     logger.info(
         "Итоговый массив из значений P для средней длины корня: "
-        f"{np.array2string(roots_mean_p_values, formatter=formatter)}"
+        f"{np.array2string(shapiro_roots_mean_p_values, formatter=formatter)}"
     )
     logger.info(
         "Итоговый массив из значений всхожести: "
         f"{np.array2string(germination_rates, precision=5)}"
     )
     summary = [
-        np.mean(roots_p_values),
-        np.mean(shoots_p_values),
-        np.mean(roots_sum_p_values),
-        np.mean(roots_mean_p_values),
-        ]
+        np.mean(shapiro_roots_p_values),
+        np.mean(shapiro_shoots_p_values),
+        np.mean(shapiro_roots_sum_p_values),
+        np.mean(shapiro_roots_mean_p_values),
+    ]
     logger.info(
-        "Выведем средние значения p для каждого массива, "
+        "Выведем средние p_value по Шапиро для каждого массива, "
+        "а на основе этого выберем самые достоверные величины:\n"
+        f"{summary}\n"
+        "Порядок элементов: индивидуальные корни, побеги, корневая система, "
+        "средние значения корней"
+    )
+    summary = [
+        np.mean(anderson_roots_p_values),
+        np.mean(anderson_shoots_p_values),
+        np.mean(anderson_roots_sum_p_values),
+        np.mean(anderson_roots_mean_p_values),
+    ]
+    logger.info(
+        "Выведем средние p_value по Андерсону для каждого массива, "
         "а на основе этого выберем самые достоверные величины:\n"
         f"{summary}\n"
         "Порядок элементов: индивидуальные корни, побеги, корневая система, "
@@ -323,9 +386,8 @@ if __name__ == "__main__":
 
     analyse_all_control_experiments(
         Path(
-            'experiments',
-            'control',
-            '15-24'
+            'diploma',
+            '2019.09.05_Winter Wheat 2018 Ozon 4gm3 on MASS',
         )
     )
     
